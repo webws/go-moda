@@ -37,6 +37,7 @@ var _ HTTPServer = (*modaecho.EchoServer)(nil)
 func NewEchoServer() *modaecho.EchoServer {
 	e := echo.New()
 	e.HideBanner = true
+	e.HidePort = true
 	return &modaecho.EchoServer{Server: e}
 }
 
