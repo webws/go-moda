@@ -11,6 +11,9 @@ import (
 	"google.golang.org/grpc"
 )
 
+// 默认grpc address
+const address = ":8082"
+
 // 定义 ServerOptions func
 type ServerOptions func(*Server)
 
@@ -44,10 +47,13 @@ func NewServer(opts ...ServerOptions) *Server {
 	srv := &Server{
 		Server:  grpc.NewServer(),
 		network: "tcp",
-		address: ":8082",
 	}
 	for _, o := range opts {
 		o(srv)
+	}
+	if srv.address == "" {
+		logger.Infow("[GRPC] server address is empty, use default address", "address", address)
+		srv.address = address
 	}
 	return srv
 }

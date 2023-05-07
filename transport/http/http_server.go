@@ -9,6 +9,9 @@ import (
 
 const PprofPrefix = "/debug/pprof"
 
+// default http address
+const address = ":8081"
+
 type Server struct {
 	ctx         context.Context
 	network     string
@@ -44,6 +47,7 @@ func NewServer(opts ...ServerOption) *Server {
 		o(srv)
 	}
 	if srv.address == "" {
+		logger.Infow("[HTTP] server address is empty, use default address", "address", address)
 		srv.address = ":8081"
 	}
 	srv.handle.PprofRegister(srv.pprofPrefix)

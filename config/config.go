@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"github.com/webws/go-moda/logger"
 )
 
@@ -9,7 +8,8 @@ type Config struct {
 	options options
 }
 
-/**
+/*
+*
 TODO 配置不符合toml
 TODO 配置文件不存在
 TODO new load unit test
@@ -21,6 +21,7 @@ func New(opts ...Option) *Config {
 	}
 	return &Config{options: optionsObj}
 }
+
 func (c *Config) Load(v interface{}) error {
 	// 获取配置内容
 	content, err := c.getSourceContent()
@@ -39,9 +40,9 @@ func (c *Config) getSourceContent() ([]byte, error) {
 	var err error
 	var content []byte
 	if len(c.options.Sources) == 0 {
-		err := errors.New("error no config source usable")
+		// err := errors.New("error no config source usable")
 		logger.Errorw("error no config source usable")
-		return nil, err
+		return nil, nil
 	}
 	for _, source := range c.options.Sources {
 		content, err = source.GetContent()
@@ -51,7 +52,7 @@ func (c *Config) getSourceContent() ([]byte, error) {
 			logger.Errorw("getSourceContent.GetContent fail", "err", err, "sourceType", source.GetSourceName())
 		}
 	}
-	return content, err
+	return content, nil
 }
 
 // unmarshal 支持 toml.unmarshal
