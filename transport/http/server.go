@@ -23,6 +23,7 @@ type Server struct {
 	address     string
 	handle      HTTPServer
 	pprofPrefix string
+	tracing     bool
 }
 
 // ServerOption is an HTTP server option.
@@ -42,6 +43,13 @@ func WitchHandle(h HTTPServer) ServerOption {
 	}
 }
 
+// tracing with server tracing.
+func WithTracing(tracing bool) ServerOption {
+	return func(s *Server) {
+		s.tracing = tracing
+	}
+}
+
 // NewServer creates an HTTP server by options.
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
@@ -56,6 +64,10 @@ func NewServer(opts ...ServerOption) *Server {
 		srv.address = ":8081"
 	}
 	srv.handle.PprofRegister(srv.pprofPrefix)
+	if srv.tracing {
+		// 启用链路追踪
+		srv.handle.EnableTracing()
+	}
 	return srv
 }
 

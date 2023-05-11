@@ -22,6 +22,7 @@ type HTTPServer interface {
 	Start(address string) error
 	Stop(ctx context.Context) error
 	PprofRegister(string)
+	EnableTracing()
 }
 
 func newGinServer() *modagin.GinServer {
