@@ -9,7 +9,7 @@ go-moda 是一个基于 Go 语言开发的通用开发框架
 - Pprof
 - sentry (待实现)
 - Prometheus (待实现)
-- Tracing (待实现)
+- Tracing (http server and client 已封装) (grpc 待实现)
 - Makefile local build,ci/cd前置处理 (待实现)
 
 ## 快速使用
@@ -21,7 +21,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
 	app "github.com/webws/go-moda"
 	"github.com/webws/go-moda/config"
@@ -36,19 +36,14 @@ type Config struct {
 	GrpcAddr string `json:"grpc_addr" toml:"grpc_addr"`
 }
 
-var (
-
-	ConfFilePath string
-)
+var ConfFilePath string
 
 func main() {
 	// flag
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
 	// set logger level info,default is debug
-	logger.Debugw("debug1", "debug", "debug")
 	logger.SetLevel(logger.InfoLevel)
-	logger.Debugw("debug2", "debug", "debug")
 	// load config
 	conf := &Config{}
 	c := config.New(config.WithSources([]config.Source{
@@ -61,12 +56,11 @@ func main() {
 		panic(err)
 	}
 	// http server
-	echoServer := modahttp.NewEchoServer()
-	registerHttp(echoServer.GetServer())
-	httpSrv := modahttp.NewServer(
+	gin, httpSrv := modahttp.NewGinHttpServer(
 		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WitchHandle(echoServer),
 	)
+	registerHttp(gin)
+
 	// grpc server
 	grpcSrv := modagrpc.NewServer()
 	grecExample := &ExampleServer{}
@@ -76,10 +70,10 @@ func main() {
 	a.Run()
 }
 
-func registerHttp(e *echo.Echo) {
-	e.GET("/helloworld", func(c echo.Context) error {
+func registerHttp(g *gin.Engine) {
+	g.GET("/helloworld", func(c *gin.Context) {
 		logger.Debugw("helloworld debug")
-		return c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
+		c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})
 }
 
@@ -95,6 +89,7 @@ func (s *ExampleServer) SayHello(ctx context.Context, req *pbexample.HelloReques
 	return &pbexample.HelloResponse{Message: "Hello " + req.Name}, nil
 }
 
+
 ```
 ### conf.toml
 ```toml
@@ -109,3 +104,5 @@ go run ./ -c ./conf.toml
 1. http 服务 http://localhost:8081/helloworld
 2. grpc 服务 使用 gRPC 客户端调用 SayHello 方法
 3. pprof http://localhost:8081/debug/pprof/
+## tracing
+tracing 示例: [tracing](./example/tracing/moda_tracing/)
