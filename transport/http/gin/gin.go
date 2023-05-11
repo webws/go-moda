@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/webws/go-moda/logger"
+
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 type GinServer struct {
@@ -38,4 +40,8 @@ func (g *GinServer) Stop(ctx context.Context) error {
 func (g *GinServer) PprofRegister(prefix string) {
 	r := g.GetServer().Group(prefix)
 	r.GET("/*any", gin.WrapF(pprof.Index))
+}
+
+func (g *GinServer) EnableTracing() {
+	g.GetServer().Use(otelgin.Middleware("my-server"))
 }

@@ -47,3 +47,7 @@ func (d *NetHTTPServer) PprofRegister(pprofPrefix string) {
 	fmt.Println(pattern)
 	d.GetServer().HandleFunc(pattern, http.HandlerFunc(pprof.Index))
 }
+
+func (d *NetHTTPServer) EnableTracing() {
+	// TODO: gin middleware
+}

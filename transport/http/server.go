@@ -4,8 +4,13 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/webws/go-moda/logger"
+	"github.com/webws/go-moda/transport"
 )
+
+var _ transport.Server = (*Server)(nil)
 
 const PprofPrefix = "/debug/pprof"
 
@@ -18,6 +23,7 @@ type Server struct {
 	address     string
 	handle      HTTPServer
 	pprofPrefix string
+	tracing     bool
 }
 
 // ServerOption is an HTTP server option.
@@ -37,6 +43,13 @@ func WitchHandle(h HTTPServer) ServerOption {
 	}
 }
 
+// tracing with server tracing.
+func WithTracing(tracing bool) ServerOption {
+	return func(s *Server) {
+		s.tracing = tracing
+	}
+}
+
 // NewServer creates an HTTP server by options.
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
@@ -51,7 +64,32 @@ func NewServer(opts ...ServerOption) *Server {
 		srv.address = ":8081"
 	}
 	srv.handle.PprofRegister(srv.pprofPrefix)
+	if srv.tracing {
+		// 启用链路追踪
+		srv.handle.EnableTracing()
+	}
 	return srv
+}
+
+func NewEchoHttpServer(opts ...ServerOption) (*echo.Echo, *Server) {
+	echoServer := newEchoServer()
+	opts = append(opts, WitchHandle(echoServer))
+	srv := NewServer(opts...)
+	return echoServer.GetServer(), srv
+}
+
+func NewGinHttpServer(opts ...ServerOption) (*gin.Engine, *Server) {
+	ginServer := newGinServer()
+	opts = append(opts, WitchHandle(ginServer))
+	srv := NewServer(opts...)
+	return ginServer.GetServer(), srv
+}
+
+func NewNetHttpServer(opts ...ServerOption) (*http.ServeMux, *Server) {
+	netHttpServer := newNetHTTPServer()
+	opts = append(opts, WitchHandle(netHttpServer))
+	srv := NewServer(opts...)
+	return netHttpServer.GetServer(), srv
 }
 
 // Start start the HTTP server.
@@ -62,13 +100,11 @@ func (s *Server) Start(ctx context.Context) error {
 		logger.Errorw("[HTTP] server start failed", "listen_addr", s.address, "err", err)
 		return err
 	}
-
 	return nil
 }
 
 // stop stop the HTTP server.
 func (s *Server) Stop(ctx context.Context) error {
-	ctx = context.Background()
 	if err := s.handle.Stop(ctx); err != nil {
 		logger.Errorw("[HTTP] server stop failed", "listen_addr", s.address, "err", err)
 		return err

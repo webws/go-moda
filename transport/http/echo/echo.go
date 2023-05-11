@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/webws/go-moda/logger"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
 )
 
 type EchoServer struct {
@@ -33,4 +34,9 @@ func (e *EchoServer) Stop(ctx context.Context) error {
 func (e *EchoServer) PprofRegister(pprofPrefix string) {
 	g := e.GetServer().Group(pprofPrefix)
 	g.GET("/*any", echo.WrapHandler(http.HandlerFunc(pprof.Index)))
+}
+
+func (e *EchoServer) EnableTracing() {
+	logger.Infow("EchoServer EnableTracing")
+	e.Server.Use(otelecho.Middleware("moda"))
 }
