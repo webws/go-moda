@@ -62,8 +62,6 @@ func main() {
 func registerHttp(e *echo.Echo) {
 	e.GET("/api1/bar", func(c echo.Context) error {
 		logger.Infow("/api1/bar info")
-		time.Sleep(5 * time.Second)
-		tracing.Start(c.Request().Context(), "api1/bar trace")
 		// call api2
 		_, err := tracing.CallAPI(c.Request().Context(), "http://localhost:8082/api2/bar", "GET", nil)
 		if err != nil {
