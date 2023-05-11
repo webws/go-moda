@@ -26,12 +26,11 @@ func main() {
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
 	logger.Infow("helloworld", "conf", ConfFilePath, "server_name", ServerName, "app_version", AppVersion)
-	logger.SetLevel(logger.InfoLevel)
+	// logger.SetLevel(logger.InfoLevel)
 	conf := &Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
-			ConfigPath: ConfFilePath,
-			// DefaultConfigPath: "/home/hellotalk/project/go_pro/go-note/go_moda/example/helloworld/conf.toml",
+			ConfigPath:        ConfFilePath,
 			DefaultConfigPath: "./conf.toml",
 		},
 		// &config.SourceText{"a=b"},
@@ -39,13 +38,8 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
-	hs := modahttp.NewNetHTTPServer()
-	registerHttp(hs.GetServer())
-
-	httpSrv := modahttp.NewServer(
-		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WitchHandle(hs),
-	)
+	serveMux, httpSrv := modahttp.NewNetHttpServer(modahttp.WithAddress(conf.HttpAddr))
+	registerHttp(serveMux)
 	a := app.New(app.Server(httpSrv))
 	a.Run()
 }

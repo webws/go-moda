@@ -24,14 +24,18 @@ var (
 )
 
 func main() {
+	// flag
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
-	logger.Infow("helloworld", "conf", ConfFilePath, "server_name", ServerName, "app_version", AppVersion)
+
+	// set logger level info,default is debug
 	logger.SetLevel(logger.InfoLevel)
+
+	// load config
 	conf := &Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
-			ConfigPath: ConfFilePath,
+			ConfigPath:        ConfFilePath,
 			DefaultConfigPath: "./conf.toml",
 		},
 		// &config.SourceText{"a=b"},
@@ -39,14 +43,15 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
-	echoServer := modahttp.NewEchoServer()
-	registerHttp(echoServer.GetServer())
-	httpSrv := modahttp.NewServer(
-		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WitchHandle(echoServer),
-	)
+	// http server
+	e, httpSrv := modahttp.NewEchoHttpServer(modahttp.WithAddress(conf.HttpAddr))
+	registerHttp(e)
+
+	// run
 	a := app.New(app.Server(httpSrv))
-	a.Run()
+	if err := a.Run(); err != nil {
+		panic(err)
+	}
 }
 
 func registerHttp(e *echo.Echo) {

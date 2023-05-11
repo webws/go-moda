@@ -30,7 +30,7 @@ func main() {
 	conf := &Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
-			ConfigPath: ConfFilePath,
+			ConfigPath:        ConfFilePath,
 			DefaultConfigPath: "./conf.toml",
 		},
 		// &config.SourceText{"a=b"},
@@ -39,12 +39,9 @@ func main() {
 		panic(err)
 	}
 	// gin http
-	hs := modahttp.NewGinServer()
-	registerHttp(hs.GetServer())
-	httpSrv := modahttp.NewServer(
-		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WitchHandle(hs),
-	)
+	gin, httpSrv := modahttp.NewGinHttpServer(modahttp.WithAddress(conf.HttpAddr))
+	registerHttp(gin)
+
 	// app run
 	a := app.New(app.Server(httpSrv))
 	a.Run()

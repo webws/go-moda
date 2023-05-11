@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/pflag"
 	app "github.com/webws/go-moda"
 	"github.com/webws/go-moda/config"
@@ -43,12 +43,11 @@ func main() {
 		panic(err)
 	}
 	// http server
-	echoServer := modahttp.NewEchoServer()
-	registerHttp(echoServer.GetServer())
-	httpSrv := modahttp.NewServer(
+	gin, httpSrv := modahttp.NewGinHttpServer(
 		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WitchHandle(echoServer),
 	)
+	registerHttp(gin)
+
 	// grpc server
 	grpcSrv := modagrpc.NewServer()
 	grecExample := &ExampleServer{}
@@ -58,10 +57,10 @@ func main() {
 	a.Run()
 }
 
-func registerHttp(e *echo.Echo) {
-	e.GET("/helloworld", func(c echo.Context) error {
+func registerHttp(g *gin.Engine) {
+	g.GET("/helloworld", func(c *gin.Context) {
 		logger.Debugw("helloworld debug")
-		return c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
+		c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})
 }
 
