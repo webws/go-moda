@@ -4,8 +4,13 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/webws/go-moda/logger"
+	"github.com/webws/go-moda/transport"
 )
+
+var _ transport.Server = (*Server)(nil)
 
 const PprofPrefix = "/debug/pprof"
 
@@ -54,6 +59,27 @@ func NewServer(opts ...ServerOption) *Server {
 	return srv
 }
 
+func NewEchoHttpServer(opts ...ServerOption) (*echo.Echo, *Server) {
+	echoServer := newEchoServer()
+	opts = append(opts, WitchHandle(echoServer))
+	srv := NewServer(opts...)
+	return echoServer.GetServer(), srv
+}
+
+func NewGinHttpServer(opts ...ServerOption) (*gin.Engine, *Server) {
+	ginServer := newGinServer()
+	opts = append(opts, WitchHandle(ginServer))
+	srv := NewServer(opts...)
+	return ginServer.GetServer(), srv
+}
+
+func NewNetHttpServer(opts ...ServerOption) (*http.ServeMux, *Server) {
+	netHttpServer := newNetHTTPServer()
+	opts = append(opts, WitchHandle(netHttpServer))
+	srv := NewServer(opts...)
+	return netHttpServer.GetServer(), srv
+}
+
 // Start start the HTTP server.
 func (s *Server) Start(ctx context.Context) error {
 	s.ctx = ctx
@@ -62,13 +88,11 @@ func (s *Server) Start(ctx context.Context) error {
 		logger.Errorw("[HTTP] server start failed", "listen_addr", s.address, "err", err)
 		return err
 	}
-
 	return nil
 }
 
 // stop stop the HTTP server.
 func (s *Server) Stop(ctx context.Context) error {
-	ctx = context.Background()
 	if err := s.handle.Stop(ctx); err != nil {
 		logger.Errorw("[HTTP] server stop failed", "listen_addr", s.address, "err", err)
 		return err

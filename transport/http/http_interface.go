@@ -11,6 +11,12 @@ import (
 	netHttp "github.com/webws/go-moda/transport/http/nethttp"
 )
 
+var (
+	_ HTTPServer = (*modagin.GinServer)(nil)
+	_ HTTPServer = (*modaecho.EchoServer)(nil)
+	_ HTTPServer = (*netHttp.NetHTTPServer)(nil)
+)
+
 type HTTPServer interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 	Start(address string) error
@@ -18,10 +24,7 @@ type HTTPServer interface {
 	PprofRegister(string)
 }
 
-// 检查是否实现了HTTPServer接口
-var _ HTTPServer = (*modagin.GinServer)(nil)
-
-func NewGinServer() *modagin.GinServer {
+func newGinServer() *modagin.GinServer {
 	ginEngine := gin.Default()
 	handle := &http.Server{
 		Handler: ginEngine,
@@ -31,23 +34,16 @@ func NewGinServer() *modagin.GinServer {
 	}
 }
 
-// 检查是否实现了HTTPServer接口
-var _ HTTPServer = (*modaecho.EchoServer)(nil)
-
-func NewEchoServer() *modaecho.EchoServer {
+func newEchoServer() *modaecho.EchoServer {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
 	return &modaecho.EchoServer{Server: e}
 }
 
-// 检查是否实现了HTTPServer接口
-var _ HTTPServer = (*netHttp.NetHTTPServer)(nil)
-
-func NewNetHTTPServer() *netHttp.NetHTTPServer {
+func newNetHTTPServer() *netHttp.NetHTTPServer {
 	serveHandle := http.NewServeMux()
 	return &netHttp.NetHTTPServer{Server: &http.Server{
-		Addr:    ":8081",
 		Handler: serveHandle,
 	}}
 }
