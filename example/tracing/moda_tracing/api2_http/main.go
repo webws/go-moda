@@ -63,7 +63,7 @@ func registerHttp(g *gin.Engine) {
 		logger.Debugw("/api2/bar")
 		ctx, span := tracing.Start(c.Request.Context(), "api2 bar_handler")
 		defer span.End()
-		_, err := tracing.CallAPI(ctx, "http://localhost:8083/api3/bar", "GET", nil)
+		_, err := modahttp.CallAPI(ctx, "http://localhost:8083/api3/bar", "GET", nil)
 		if err != nil {
 			logger.Errorw("call api1 error", "err", err)
 		}
