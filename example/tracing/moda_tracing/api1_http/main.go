@@ -67,7 +67,7 @@ func registerHttp(e *echo.Echo) {
 	e.GET("/api1/bar", func(c echo.Context) error {
 		logger.Infow("/api1/bar info")
 		// call api2
-		_, err := tracing.CallAPI(c.Request().Context(), "http://localhost:8082/api2/bar", "GET", nil)
+		_, err := modahttp.CallAPI(c.Request().Context(), "http://localhost:8082/api2/bar", "GET", nil)
 		if err != nil {
 			logger.Errorw("call api2 error", "err", err)
 		}
