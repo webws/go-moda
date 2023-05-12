@@ -60,7 +60,7 @@ func main() {
 
 func ClientGrpcSend(addr string) {
 	// 连接服务器
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	conn, err := modagrpc.Dial(context.Background(), addr, modagrpc.WithDialWithInsecure(true), modagrpc.WithDialTracing(true))
 	if err != nil {
 		panic(err)
 	}
