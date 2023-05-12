@@ -1,2 +1,2 @@
 http_addr = ":8081"
-grpc_addr = ":8082"
+grpc_addr = ":8076"
