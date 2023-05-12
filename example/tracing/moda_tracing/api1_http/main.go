@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/pflag"
@@ -13,6 +13,10 @@ import (
 
 	app "github.com/webws/go-moda"
 	"github.com/webws/go-moda/tracing"
+
+	modagrpc "github.com/webws/go-moda/transport/grpc"
+
+	pbexample "github.com/webws/go-moda/example/pb/example"
 	// logger
 )
 
@@ -67,7 +71,25 @@ func registerHttp(e *echo.Echo) {
 		if err != nil {
 			logger.Errorw("call api2 error", "err", err)
 		}
+		ClientGrpcSend("localhost:8086", c.Request().Context())
 		// Bar(c.Request().Context())
 		return c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})
+}
+
+func ClientGrpcSend(addr string, ctx context.Context) {
+	// 连接服务器
+	conn, err := modagrpc.Dial(ctx, addr, modagrpc.WithDialWithInsecure(true), modagrpc.WithDialTracing(true))
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+	// 创建一个grpc客户端
+	client := pbexample.NewExampleServiceClient(conn)
+	// 调用服务端的 SayHello 方法
+	resp, err := client.SayHello(ctx, &pbexample.HelloRequest{Name: "gRPC"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(resp.Message)
 }
