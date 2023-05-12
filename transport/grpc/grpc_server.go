@@ -8,6 +8,7 @@ import (
 
 	"github.com/webws/go-moda/logger"
 	"github.com/webws/go-moda/transport"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -29,6 +30,12 @@ func WithServerAddress(address string) ServerOptions {
 	}
 }
 
+func WithTracing(tracing bool) ServerOptions {
+	return func(s *Server) {
+		s.tracing = tracing
+	}
+}
+
 // 验证 Server 是否实现了 transport.Server 接口
 var _ transport.Server = &Server{}
 
@@ -40,12 +47,12 @@ type Server struct {
 	network  string
 	address  string
 	endpoint *url.URL
+	tracing  bool
 }
 
 // NewServer
 func NewServer(opts ...ServerOptions) *Server {
 	srv := &Server{
-		Server:  grpc.NewServer(),
 		network: "tcp",
 	}
 	for _, o := range opts {
@@ -55,6 +62,14 @@ func NewServer(opts ...ServerOptions) *Server {
 		logger.Infow("[GRPC] server address is empty, use default address", "address", address)
 		srv.address = address
 	}
+	var grpcOption []grpc.ServerOption
+
+	srv.Server = grpc.NewServer()
+	if srv.tracing {
+		grpcOption = append(grpcOption, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
+		grpcOption = append(grpcOption, grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+	}
+	srv.Server = grpc.NewServer(grpcOption...)
 	return srv
 }
 
