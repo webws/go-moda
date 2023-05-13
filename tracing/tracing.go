@@ -49,3 +49,9 @@ func InitJaegerProvider(jaegerUrl string, serviceName string) (func(ctx context.
 func Start(ctx context.Context, name string) (context.Context, trace.Span) {
 	return tracer.Start(ctx, name)
 }
+// TODO 重复trace_id
+func LoggerWitchSpan(ctx context.Context, l logger.LoggerInterface) logger.LoggerInterface {
+	spanCtx := trace.SpanContextFromContext(ctx)
+	return l.With("trace_id", spanCtx.TraceID().String())
+	// return l.With("trace_id", spanCtx.TraceID().String(), "span_id", spanCtx.SpanID().String())
+}
