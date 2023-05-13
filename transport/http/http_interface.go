@@ -27,7 +27,7 @@ type HTTPServer interface {
 
 func newGinServer() *modagin.GinServer {
 	gin.SetMode(gin.ReleaseMode)
-	ginEngine := gin.Default()
+	ginEngine := gin.New()
 	handle := &http.Server{
 		Handler: ginEngine,
 	}
