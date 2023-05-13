@@ -15,11 +15,14 @@ import (
 )
 
 type Config struct {
-	HttpAddr string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr string `json:"grpc_addr" toml:"grpc_addr"`
+	HttpAddr  string `json:"http_addr" toml:"http_addr"`
+	GrpcAddr  string `json:"grpc_addr" toml:"grpc_addr"`
+	JaegerUrl string `json:"jaeger_url" toml:"jaeger_url"`
+	Tracing   bool   `toml:"tracing"  json:"tracing"` // opentelemetry tracing
 }
 
-// ServerName   string
+var ServerName = "example"
+
 // AppVersion   string
 var ConfFilePath string
 
@@ -28,9 +31,7 @@ func main() {
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
 	// set logger level info,default is debug
-	logger.Debugw("debug1", "debug", "debug")
 	logger.SetLevel(logger.InfoLevel)
-	logger.Debugw("debug2", "debug", "debug")
 	// load config
 	conf := &Config{}
 	c := config.New(config.WithSources([]config.Source{
@@ -40,7 +41,7 @@ func main() {
 		},
 	}))
 	if err := c.Load(conf); err != nil {
-		panic(err)
+		logger.Fatalw("load config error", "err", err)
 	}
 	// http server
 	gin, httpSrv := modahttp.NewGinHttpServer(
@@ -49,12 +50,18 @@ func main() {
 	registerHttp(gin)
 
 	// grpc server
-	grpcSrv := modagrpc.NewServer()
+	grpcSrv := modagrpc.NewServer(modagrpc.WithServerAddress(conf.GrpcAddr))
 	grecExample := &ExampleServer{}
 	pbexample.RegisterExampleServiceServer(grpcSrv, grecExample)
+
 	// app run
-	a := app.New(app.Server(httpSrv, grpcSrv))
-	a.Run()
+	a := app.New(
+		app.Server(httpSrv, grpcSrv),
+		app.Name(ServerName),
+	)
+	if err := a.Run(); err != nil {
+		logger.Fatalw("app run error", "err", err)
+	}
 }
 
 func registerHttp(g *gin.Engine) {
@@ -69,9 +76,6 @@ type ExampleServer struct {
 	pbexample.UnimplementedExampleServiceServer
 }
 
-// 实现 GrpcServer 接口中的 SayHello 方法
-
 func (s *ExampleServer) SayHello(ctx context.Context, req *pbexample.HelloRequest) (*pbexample.HelloResponse, error) {
-	// return nil, nil
 	return &pbexample.HelloResponse{Message: "Hello " + req.Name}, nil
 }
