@@ -17,6 +17,7 @@ func (l *Logger) setLogger(in LoggerInterface) {
 func Infow(msg string, keysAndValues ...interface{}) {
 	globalog.logger.Infow(msg, keysAndValues...)
 }
+
 func Debugw(msg string, keysAndValues ...interface{}) {
 	globalog.logger.Debugw(msg, keysAndValues...)
 }
@@ -28,12 +29,17 @@ func Errorw(msg string, keysAndValues ...interface{}) {
 func Fatalw(msg string, keysAndValues ...interface{}) {
 	globalog.logger.Fatalw(msg, keysAndValues...)
 }
+
 func SetLevel(level Level) {
 	globalog.logger.SetLevel(level)
 }
+
 func GetLogger() LoggerInterface {
 	return globalog
 }
+
 func With(keyValues ...interface{}) LoggerInterface {
-	return globalog.logger.With(keyValues...)
+	newLog := globalog.logger.With(keyValues...)
+	l := &Logger{logger: newLog}
+	return l
 }

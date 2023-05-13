@@ -11,7 +11,7 @@ type Logger struct {
 }
 
 // 也可以单独 NewLogger
-func NewLogger(level Level) LoggerInterface {
+func NewLogger(level Level) *Logger {
 	return newlogger(level)
 }
 
@@ -26,6 +26,7 @@ func (l *Logger) Errorw(msg string, keysAndValues ...interface{}) {
 func (l *Logger) Fatalw(msg string, keysAndValues ...interface{}) {
 	l.logger.Fatalw(msg, keysAndValues...)
 }
+
 func (l *Logger) Infow(msg string, keysAndValues ...interface{}) {
 	l.logger.Infow(msg, keysAndValues...)
 }
@@ -33,6 +34,8 @@ func (l *Logger) Infow(msg string, keysAndValues ...interface{}) {
 func (l *Logger) SetLevel(level Level) {
 	l.logger.SetLevel(level)
 }
+
 func (l *Logger) With(keyValues ...interface{}) LoggerInterface {
-	return l.logger.With(keyValues...)
+	newLog := l.logger.With(keyValues...)
+	return &Logger{logger: newLog}
 }
