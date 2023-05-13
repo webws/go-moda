@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  api1_http:
+    build: 
+      context: .
+      dockerfile: ./dockerfiles/api1_http/Dockerfile
+    ports:
+      - 8081:8081
+    env_file:
+      - .env
+  api2_http:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/api2_http/Dockerfile
+    ports:
+      - 8082:8081
+    env_file:
+      - .env
+
+  api3_http:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/api3_http/Dockerfile
+    ports:
+      - 8083:8081
+    env_file:
+      - .env
+  grpc:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/grpc/Dockerfile
+    ports:
+      - 8084:8082
+    env_file:
+      - .env
+  jaeger:
+    image: jaegertracing/all-in-one:1.6
+    ports:
+      - 16686:16686
+      - 14268:14268
+      - 16685:16685
+

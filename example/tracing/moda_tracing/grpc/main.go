@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/spf13/pflag"
@@ -14,6 +13,8 @@ import (
 
 	app "github.com/webws/go-moda"
 	pbexample "github.com/webws/go-moda/example/pb/example"
+
+	configExample "github.com/webws/go-moda/example/config"
 )
 
 var (
@@ -31,10 +32,12 @@ type Config struct {
 
 var csFlag = pflag.StringP("cs", "s", "client", "client or server")
 
+var conf *configExample.Config
+
 func main() {
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
-	conf := &Config{}
+	conf = &configExample.Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
 			ConfigPath:        ConfFilePath,
@@ -45,13 +48,13 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
+	conf.SetEnvServiceAddr()
 	// init jaeger provider
 	shutdown, err := tracing.InitJaegerProvider(conf.JaegerUrl, "grpc-server")
 	if err != nil {
 		panic(err)
 	}
 	defer shutdown(context.Background())
-	// 通过csFlag判断是启动服务端还是客户端
 	gs := modagrpc.NewServer(
 		modagrpc.WithServerAddress(conf.GrpcAddr),
 		modagrpc.WithServerNetwork("tcp"),
@@ -62,23 +65,6 @@ func main() {
 	if err := a.Run(); err != nil {
 		panic(err)
 	}
-}
-
-func ClientGrpcSend(addr string) {
-	// 连接服务器
-	conn, err := modagrpc.Dial(context.Background(), addr, modagrpc.WithDialWithInsecure(true), modagrpc.WithDialTracing(true))
-	if err != nil {
-		panic(err)
-	}
-	defer conn.Close()
-	// 创建一个grpc客户端
-	client := pbexample.NewExampleServiceClient(conn)
-	// 调用服务端的 SayHello 方法
-	resp, err := client.SayHello(context.Background(), &pbexample.HelloRequest{Name: "gRPC"})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.Message)
 }
 
 // 启动一个grpc server

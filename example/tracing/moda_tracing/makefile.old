@@ -1,0 +1,38 @@
+.PHONY: build-api1 build-api2 build-api3 build-grpc dockerfiles create-dirs deploy
+
+define DOCKERFILE_CONTENT
+FROM alpine:latest
+WORKDIR /app
+COPY ./bin/ ./
+COPY ./conf.toml ./
+endef
+
+export DOCKERFILE_CONTENT
+
+build-api1:
+	CGO_ENABLED=0 GOOS=linux go build -o ./bin/api1_http ./api1_http
+
+build-api2:
+	CGO_ENABLED=0 GOOS=linux go build -o ./bin/api2_http ./api2_http
+
+build-api3:
+	CGO_ENABLED=0 GOOS=linux go build -o ./bin/api3_http ./api3_http
+
+build-grpc:
+	CGO_ENABLED=0 GOOS=linux go build -o ./bin/grpc ./grpc
+
+create-dirs:
+	mkdir -p ./dockerfiles/api1_http
+	mkdir -p ./dockerfiles/api2_http
+	mkdir -p ./dockerfiles/api3_http
+	mkdir -p ./dockerfiles/grpc
+
+dockerfiles: create-dirs
+	echo "$$DOCKERFILE_CONTENT\nCMD [\"./api1_http\", \"-c\", \"./conf.toml\"]" > ./dockerfiles/api1_http/Dockerfile
+	echo "$$DOCKERFILE_CONTENT\nCMD [\"./api2_http\", \"-c\", \"./conf.toml\"]" > ./dockerfiles/api2_http/Dockerfile
+	echo "$$DOCKERFILE_CONTENT\nCMD [\"./api3_http\", \"-c\", \"./conf.toml\"]" > ./dockerfiles/api3_http/Dockerfile
+	echo "$$DOCKERFILE_CONTENT\nCMD [\"./grpc\", \"-c\", \"./conf.toml\"]" > ./dockerfiles/grpc/Dockerfile
+
+deploy: build-api1 build-api2 build-api3 build-grpc dockerfiles
+	docker-compose up --build
+

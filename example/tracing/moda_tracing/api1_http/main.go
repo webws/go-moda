@@ -16,29 +16,26 @@ import (
 
 	modagrpc "github.com/webws/go-moda/transport/grpc"
 
+	configExample "github.com/webws/go-moda/example/config"
 	pbexample "github.com/webws/go-moda/example/pb/example"
-	// logger
-)
 
-type Config struct {
-	HttpAddr  string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr  string `json:"grpc_addr" toml:"grpc_addr"`
-	JaegerUrl string `json:"jaeger_url" toml:"jaeger_url"`
-	Tracing   bool   `toml:"tracing"  json:"tracing"` // opentelemetry tracing
-}
+	// logger
+	"go.opentelemetry.io/otel/trace"
+)
 
 var (
 	ServerName   = "api1"
 	AppVersion   string
 	ConfFilePath string
 )
+var conf *configExample.Config
 
 func main() {
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
 	// load config
 	logger.SetLevel(logger.DebugLevel)
-	conf := &Config{}
+	conf = &configExample.Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
 			ConfigPath:        ConfFilePath,
@@ -48,6 +45,7 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
+	conf.SetEnvServiceAddr()
 	// init jaeger provider
 	shutdown, err := tracing.InitJaegerProvider(conf.JaegerUrl, ServerName)
 	if err != nil {
@@ -65,13 +63,25 @@ func main() {
 
 func registerHttp(e *echo.Echo) {
 	e.GET("/api1/bar", func(c echo.Context) error {
-		logger.Infow("/api1/bar info")
+		logger.Infow("/api1/bar info", "req.header", c.Request().Header)
+		// l:=logger.With("api1", "abc")
+
+		spanCtx := trace.SpanContextFromContext(c.Request().Context())
+		logger.Infow("span", "span_id", spanCtx.SpanID().String(), "trace_id", spanCtx.TraceID().String())
 		// call api2
-		_, err := modahttp.CallAPI(c.Request().Context(), "http://localhost:8082/api2/bar", "GET", nil)
+		ctx, span := tracing.Start(c.Request().Context(), "api1")
+		defer span.End()
+
+		url := fmt.Sprintf("http://%s/api2/bar", conf.ServiceAddr.Api2)
+		spanCtx = trace.SpanContextFromContext(ctx)
+		logger.Infow("span", "span_id", spanCtx.SpanID().String(), "trace_id", spanCtx.TraceID().String())
+
+		defer span.End()
+		_, err := modahttp.CallAPI(ctx, url, "GET", nil)
 		if err != nil {
 			logger.Errorw("call api2 error", "err", err)
 		}
-		ClientGrpcSend("localhost:8086", c.Request().Context())
+		ClientGrpcSend(conf.ServiceAddr.Grpc1, c.Request().Context())
 		// Bar(c.Request().Context())
 		return c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})

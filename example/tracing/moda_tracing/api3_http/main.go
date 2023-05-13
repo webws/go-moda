@@ -12,6 +12,7 @@ import (
 	modahttp "github.com/webws/go-moda/transport/http"
 
 	app "github.com/webws/go-moda"
+	configExample "github.com/webws/go-moda/example/config"
 	"github.com/webws/go-moda/tracing"
 	// logger
 )
@@ -29,12 +30,14 @@ var (
 	ConfFilePath string
 )
 
+var conf *configExample.Config
+
 func main() {
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
 	// load config
 	logger.SetLevel(logger.DebugLevel)
-	conf := &Config{}
+	conf = &configExample.Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
 			ConfigPath:        ConfFilePath,
@@ -44,6 +47,7 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
+	conf.SetEnvServiceAddr()
 	// init jaeger provider
 	shutdown, err := tracing.InitJaegerProvider(conf.JaegerUrl, ServerName)
 	if err != nil {
