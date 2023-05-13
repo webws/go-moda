@@ -2,9 +2,10 @@ package logger
 
 import (
 	"fmt"
+	"testing"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"testing"
 )
 
 func Test_ZapLog(t *testing.T) {
@@ -51,7 +52,7 @@ func TestLogger(t *testing.T) {
 	// global
 	Debugw("msg1", "k1", "v1") // print
 	Infow("msg2", "k2", "v2")  // print
-	//global set level
+	// global set level
 	SetLevel(DebugLevel)
 	Debugw("msg3", "k3", "v3") // not print
 	Infow("msg4", "k4", "v4")  // print
@@ -64,7 +65,9 @@ func TestLogger(t *testing.T) {
 	ll.Debugw("======") // 新实例包含 key "name"
 	l.Debugw("=======") // 老的不包含 key "name"
 	// global with
+	// 层级打印正确:新实例老例例都正常打印在 此文件中:log_test
+	// zap.AddCallerSkip(0)
 	a := With("name", "song")
-	a.Infow("======") //新实例包含 key "name"
-	Infow("======")   //老的不包含 key "name"
+	a.Infow("======") // 新实例包含 key "name",
+	Infow("======")   // 老的不包含 key "name"
 }
