@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,16 +12,10 @@ import (
 	modahttp "github.com/webws/go-moda/transport/http"
 
 	app "github.com/webws/go-moda"
+	configExample "github.com/webws/go-moda/example/config"
 	"github.com/webws/go-moda/tracing"
 	// logger
 )
-
-type Config struct {
-	HttpAddr  string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr  string `json:"grpc_addr" toml:"grpc_addr"`
-	JaegerUrl string `json:"jaeger_url" toml:"jaeger_url"`
-	Tracing   bool   `toml:"tracing"  json:"tracing"` // opentelemetry tracing
-}
 
 var (
 	ServerName   = "api2"
@@ -28,12 +23,14 @@ var (
 	ConfFilePath string
 )
 
+var conf *configExample.Config
+
 func main() {
 	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
 	pflag.Parse()
 	// load config
 	logger.SetLevel(logger.DebugLevel)
-	conf := &Config{}
+	conf = &configExample.Config{}
 	c := config.New(config.WithSources([]config.Source{
 		&config.SourceFile{
 			ConfigPath:        ConfFilePath,
@@ -43,6 +40,7 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
+	conf.SetEnvServiceAddr()
 	// init jaeger provider
 	shutdown, err := tracing.InitJaegerProvider(conf.JaegerUrl, ServerName)
 	if err != nil {
@@ -60,10 +58,15 @@ func main() {
 
 func registerHttp(g *gin.Engine) {
 	g.GET("/api2/bar", func(c *gin.Context) {
-		logger.Debugw("/api2/bar")
+		// header
+		log := tracing.LoggerWitchSpan(c.Request.Context(), logger.GetLogger())
+		log.Infow("header", "header", c.Request.Header)
 		ctx, span := tracing.Start(c.Request.Context(), "api2 bar_handler")
 		defer span.End()
-		_, err := modahttp.CallAPI(ctx, "http://localhost:8083/api3/bar", "GET", nil)
+		log = tracing.LoggerWitchSpan(ctx, log)
+		log.Infow("header", "header", c.Request.Header)
+		url := fmt.Sprintf("http://%s/api3/bar", conf.ServiceAddr.Api3)
+		_, err := modahttp.CallAPI(ctx, url, "GET", nil)
 		if err != nil {
 			logger.Errorw("call api1 error", "err", err)
 		}

@@ -1,2 +1,6 @@
 test.env
 test
+example/tracing/moda_tracing/bin
+example/tracing/moda_tracing/dockerfiles
+
+
