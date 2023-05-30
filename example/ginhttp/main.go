@@ -38,6 +38,7 @@ func main() {
 	if err := c.Load(conf); err != nil {
 		panic(err)
 	}
+	conf.HttpAddr = ":80"
 	// gin http
 	gin, httpSrv := modahttp.NewGinHttpServer(modahttp.WithAddress(conf.HttpAddr))
 	registerHttp(gin)
@@ -48,7 +49,7 @@ func main() {
 }
 
 func registerHttp(g *gin.Engine) {
-	g.GET("/helloworld", func(c *gin.Context) {
+	g.GET("/", func(c *gin.Context) {
 		logger.Debugw("helloworld debug")
 		c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})

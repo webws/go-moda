@@ -29,12 +29,12 @@ brew install graphviz
 
 ![](./example/tracing/moda_tracing/images/2023-05-13-23-02-24.png)
 ## 示例
-基本http/grpc服务启动示例:[basic example](./example/basic/)
-gin http 服务示例:[example_gin](./example/ginhttp/)
-echo http 服务示例:[example_echo](./example/echohttp/)
-grpc 服务示例:[example_grpc](./example/grpc/)
-tracing 示例:[tracing_example](./example/tracing/moda_tracing/)
-docker 本地CD示例:[docker_example](./example/tracing/moda_tracing/)
+* 基本http/grpc服务启动示例:[basic example](./example/basic/)
+* gin http 服务示例:[example_gin](./example/ginhttp/)
+* echo http 服务示例:[example_echo](./example/echohttp/)
+* grpc 服务示例:[example_grpc](./example/grpc/)
+* tracing 示例:[tracing_example](./example/tracing/moda_tracing/)
+* docker 本地CD示例:[docker_example](./example/tracing/moda_tracing/)
 ## 参考链接
 * https://github.com/open-telemetry
 * https://github.com/go-kratos
