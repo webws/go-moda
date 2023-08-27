@@ -1,0 +1,10 @@
+http_addr = ":8082"
+grpc_addr = ":8083"
+jaeger_url= "http://localhost:14268/api/traces"
+tracing= true
+
+[service_addr]
+api1 = "localhost:8081"
+api2 = "localhost:8082"
+api3 = "localhost:8083"
+grpc1 = "localhost:8084"
