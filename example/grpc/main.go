@@ -29,18 +29,10 @@ type Config struct {
 var csFlag = pflag.StringP("cs", "s", "client", "client or server")
 
 func main() {
-	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
-	pflag.Parse()
+	// load config
 	conf := &Config{}
-	c := config.New(config.WithSources([]config.Source{
-		&config.SourceFile{
-			ConfigPath:        ConfFilePath,
-			DefaultConfigPath: "./conf.toml",
-		},
-		// &config.SourceText{"a=b"},
-	}))
-	if err := c.Load(conf); err != nil {
-		panic(err)
+	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
+		logger.Fatalw("NewConfigWithFile fail", "err", err)
 	}
 	// 通过csFlag判断是启动服务端还是客户端
 	if *csFlag == "server" {

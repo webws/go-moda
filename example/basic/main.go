@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/pflag"
 	app "github.com/webws/go-moda"
 	"github.com/webws/go-moda/config"
 	pbexample "github.com/webws/go-moda/example/pb/example"
@@ -14,6 +13,8 @@ import (
 	modahttp "github.com/webws/go-moda/transport/http"
 )
 
+var ServerName string
+
 type Config struct {
 	HttpAddr  string `json:"http_addr" toml:"http_addr"`
 	GrpcAddr  string `json:"grpc_addr" toml:"grpc_addr"`
@@ -21,27 +22,10 @@ type Config struct {
 	Tracing   bool   `toml:"tracing"  json:"tracing"` // opentelemetry tracing
 }
 
-var ServerName = "example"
-
-// AppVersion   string
-var ConfFilePath string
-
 func main() {
-	// flag
-	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
-	pflag.Parse()
-	// set logger level info,default is debug
-	logger.SetLevel(logger.InfoLevel)
-	// load config
 	conf := &Config{}
-	c := config.New(config.WithSources([]config.Source{
-		&config.SourceFile{
-			ConfigPath:        ConfFilePath,
-			DefaultConfigPath: "./conf.toml",
-		},
-	}))
-	if err := c.Load(conf); err != nil {
-		logger.Fatalw("load config error", "err", err)
+	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
+		logger.Fatalw("NewConfigWithFile fail", "err", err)
 	}
 	// http server
 	gin, httpSrv := modahttp.NewGinHttpServer(
@@ -50,7 +34,10 @@ func main() {
 	registerHttp(gin)
 
 	// grpc server
-	grpcSrv := modagrpc.NewServer(modagrpc.WithServerAddress(conf.GrpcAddr))
+	grpcSrv := modagrpc.NewServer(
+		modagrpc.WithServerAddress(conf.GrpcAddr),
+		modagrpc.WithTracing(conf.Tracing),
+	)
 	grecExample := &ExampleServer{}
 	pbexample.RegisterExampleServiceServer(grpcSrv, grecExample)
 
@@ -71,7 +58,6 @@ func registerHttp(g *gin.Engine) {
 	})
 }
 
-// 实现 GrpcServer 接口
 type ExampleServer struct {
 	pbexample.UnimplementedExampleServiceServer
 }

@@ -23,30 +23,15 @@ var (
 	ConfFilePath string
 )
 
-type Config struct {
-	HttpAddr  string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr  string `json:"grpc_addr" toml:"grpc_addr"`
-	JaegerUrl string `json:"jaeger_url" toml:"jaeger_url"`
-	Tracing   bool   `toml:"tracing"  json:"tracing"` // opentelemetry tracing
-}
-
 var csFlag = pflag.StringP("cs", "s", "client", "client or server")
 
 var conf *configExample.Config
 
 func main() {
-	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
-	pflag.Parse()
 	conf = &configExample.Config{}
-	c := config.New(config.WithSources([]config.Source{
-		&config.SourceFile{
-			ConfigPath:        ConfFilePath,
-			DefaultConfigPath: "./conf.toml",
-		},
-		// &config.SourceText{"a=b"},
-	}))
-	if err := c.Load(conf); err != nil {
-		panic(err)
+
+	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
+		logger.Fatalw("NewConfigWithFile fail", "err", err)
 	}
 	conf.SetEnvServiceAddr()
 	// init jaeger provider
@@ -57,7 +42,6 @@ func main() {
 	defer shutdown(context.Background())
 	gs := modagrpc.NewServer(
 		modagrpc.WithServerAddress(conf.GrpcAddr),
-		modagrpc.WithServerNetwork("tcp"),
 		modagrpc.WithTracing(conf.Tracing),
 	)
 	pbexample.RegisterExampleServiceServer(gs, &ExampleServer{})
