@@ -32,8 +32,8 @@ func main() {
 }
 
 func registerHttp(g *gin.Engine) {
-	g.GET("/", func(c *gin.Context) {
-		logger.Debugw("helloworld debug")
+	g.GET("/helloworld", func(c *gin.Context) {
+		logger.Debugw("Hello World ")
 		c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})
 }

@@ -16,10 +16,8 @@ import (
 var ServerName string
 
 type Config struct {
-	HttpAddr  string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr  string `json:"grpc_addr" toml:"grpc_addr"`
-	JaegerUrl string `json:"jaeger_url" toml:"jaeger_url"`
-	Tracing   bool   `toml:"tracing"  json:"tracing"` // opentelemetry tracing
+	HttpAddr string `json:"http_addr" toml:"http_addr"`
+	GrpcAddr string `json:"grpc_addr" toml:"grpc_addr"`
 }
 
 func main() {
@@ -30,13 +28,13 @@ func main() {
 	// http server
 	gin, httpSrv := modahttp.NewGinHttpServer(
 		modahttp.WithAddress(conf.HttpAddr),
+		modahttp.WithTracing(true),
 	)
 	registerHttp(gin)
 
 	// grpc server
 	grpcSrv := modagrpc.NewServer(
 		modagrpc.WithServerAddress(conf.GrpcAddr),
-		modagrpc.WithTracing(conf.Tracing),
 	)
 	grecExample := &ExampleServer{}
 	pbexample.RegisterExampleServiceServer(grpcSrv, grecExample)
@@ -53,7 +51,7 @@ func main() {
 
 func registerHttp(g *gin.Engine) {
 	g.GET("/helloworld", func(c *gin.Context) {
-		logger.Debugw("helloworld debug")
+		logger.Debugw("Hello World")
 		c.JSON(http.StatusOK, http.StatusText(http.StatusOK))
 	})
 }

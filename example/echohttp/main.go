@@ -13,23 +13,13 @@ import (
 
 type Config struct {
 	HttpAddr string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr string `json:"grpc_addr" toml:"grpc_addr"`
 }
 
-var (
-	ServerName   string
-	AppVersion   string
-	ConfFilePath string
-)
-
 func main() {
-	// set logger level info,default is debug
-	logger.SetLevel(logger.InfoLevel)
-
 	// load config
 	conf := &Config{}
 	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
-		logger.Fatalw("NewConfigWithFile fail","err",err)
+		logger.Fatalw("NewConfigWithFile fail", "err", err)
 	}
 	// http server
 	e, httpSrv := modahttp.NewEchoHttpServer(modahttp.WithAddress(conf.HttpAddr))
