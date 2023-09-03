@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"net"
-	"net/url"
 	"sync"
 
 	"github.com/webws/go-moda/logger"
@@ -46,7 +45,6 @@ type Server struct {
 	once     sync.Once
 	network  string
 	address  string
-	endpoint *url.URL
 	tracing  bool
 }
 
@@ -92,14 +90,4 @@ func (s *Server) Stop(ctx context.Context) error {
 		s.Server.GracefulStop()
 	})
 	return nil
-}
-
-// endpoint
-func (s *Server) Endpoint() (*url.URL, error) {
-	// TODO Endpoint用于非k8s环境下的服务发现
-	s.endpoint = &url.URL{
-		Scheme: "grpc",
-		Host:   s.listener.Addr().String(),
-	}
-	return s.endpoint, nil
 }
