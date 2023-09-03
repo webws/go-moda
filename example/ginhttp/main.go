@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/pflag"
 	app "github.com/webws/go-moda"
 	"github.com/webws/go-moda/config"
 	"github.com/webws/go-moda/logger"
@@ -16,36 +15,20 @@ type Config struct {
 	GrpcAddr string `json:"grpc_addr" toml:"grpc_addr"`
 }
 
-var (
-	ServerName   string
-	AppVersion   string
-	ConfFilePath string
-)
-
 func main() {
-	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
-	pflag.Parse()
-	logger.Infow("helloworld", "conf", ConfFilePath, "server_name", ServerName, "app_version", AppVersion)
-	logger.SetLevel(logger.InfoLevel)
 	conf := &Config{}
-	c := config.New(config.WithSources([]config.Source{
-		&config.SourceFile{
-			ConfigPath:        ConfFilePath,
-			DefaultConfigPath: "./conf.toml",
-		},
-		// &config.SourceText{"a=b"},
-	}))
-	if err := c.Load(conf); err != nil {
-		panic(err)
+	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
+		logger.Fatalw("NewConfigWithFile fail", "err", err)
 	}
-	conf.HttpAddr = ":80"
-	// gin http
+	// gin http server
 	gin, httpSrv := modahttp.NewGinHttpServer(modahttp.WithAddress(conf.HttpAddr))
 	registerHttp(gin)
 
 	// app run
 	a := app.New(app.Server(httpSrv))
-	a.Run()
+	if err := a.Run(); err != nil {
+		logger.Fatalw("app run fail", "err", err)
+	}
 }
 
 func registerHttp(g *gin.Engine) {

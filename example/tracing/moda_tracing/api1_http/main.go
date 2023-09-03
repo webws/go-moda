@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/pflag"
 	"github.com/webws/go-moda/config"
 	"github.com/webws/go-moda/logger"
 	modahttp "github.com/webws/go-moda/transport/http"
@@ -31,19 +30,10 @@ var (
 var conf *configExample.Config
 
 func main() {
-	pflag.StringVarP(&ConfFilePath, "conf", "c", "", "config file path")
-	pflag.Parse()
-	// load config
-	logger.SetLevel(logger.DebugLevel)
 	conf = &configExample.Config{}
-	c := config.New(config.WithSources([]config.Source{
-		&config.SourceFile{
-			ConfigPath:        ConfFilePath,
-			DefaultConfigPath: "./conf.toml",
-		},
-	}))
-	if err := c.Load(conf); err != nil {
-		panic(err)
+
+	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
+		logger.Fatalw("NewConfigWithFile fail", "err", err)
 	}
 	conf.SetEnvServiceAddr()
 	// init jaeger provider

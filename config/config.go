@@ -1,6 +1,9 @@
 package config
 
 import (
+	"os"
+
+	"github.com/spf13/pflag"
 	"github.com/webws/go-moda/logger"
 )
 
@@ -38,4 +41,15 @@ func (c *Config) Load(v interface{}) error {
 		}
 	}
 	return nil
+}
+
+func NewConfigWithFile(defaultPath string) *Config {
+	pflagCmd := pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
+	confFilePath := pflagCmd.StringP("conf", "c", "", "config file path")
+	return New(WithSources([]Source{
+		&SourceFile{
+			ConfigPath:        *confFilePath,
+			DefaultConfigPath: defaultPath,
+		},
+	}))
 }
