@@ -71,3 +71,7 @@ func TestLogger(t *testing.T) {
 	a.Infow("======") // 新实例包含 key "name",
 	Infow("======")   // 老的不包含 key "name"
 }
+
+func TestLoggerFileLine(t *testing.T) {
+	Infow("msg1", "k1", "v1") // print
+}
