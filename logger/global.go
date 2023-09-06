@@ -4,7 +4,7 @@ package logger
 var globalog = newlogger(DebugLevel)
 
 func newlogger(level Level) *Logger {
-	l := &Logger{logger: buildZapLog(level)}
+	l := &Logger{logger: newSlog(level, false)}
 	return l
 }
 
