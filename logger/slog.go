@@ -28,16 +28,21 @@ func newSlog(level Level, addSource bool) LoggerInterface {
 	}
 }
 
+
 func (l *SlogLogger) Debugw(msg string, keysAndValues ...interface{}) {
+	keysAndValues = l.ApppendFileLine(keysAndValues...)
 	l.logger.Debug(msg, keysAndValues...)
 }
 
 func (l *SlogLogger) Errorw(msg string, keysAndValues ...interface{}) {
+	keysAndValues = l.ApppendFileLine(keysAndValues...)
 	l.logger.Error(msg, keysAndValues...)
 }
 
 func (l *SlogLogger) Fatalw(msg string, keysAndValues ...interface{}) {
+	keysAndValues = l.ApppendFileLine(keysAndValues...)
 	l.logger.Error(msg, keysAndValues...)
+	os.Exit(1)
 }
 
 func (l *SlogLogger) Infow(msg string, keysAndValues ...interface{}) {
