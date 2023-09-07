@@ -1,7 +1,7 @@
 package logger
 
 // 全局 log,也可以单独 NewLogger 获取新的实例
-var globalog = newlogger(DebugLevel)
+var globalog = newlogger(InfoLevel)
 
 func newlogger(level Level) *Logger {
 	l := &Logger{logger: newSlog(level, false)}
