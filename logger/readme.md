@@ -1,5 +1,5 @@
 ### 快速体验
-以下是 项目中 已经用slog替换 zap 后的 logger 使用方法,无任何感知,与之前一模一样
+以下是 项目中 已经用slog替换 zap 后的 logger 使用方法,与替换前使用方式相同,无任何感知
 ``` golang
 package main
 
@@ -21,31 +21,84 @@ func main() {
 Go 1.21版本中 将 golang.org/x/exp/slog 引入了go标准库  路径为 log/slog。 
 新项目的 如果不使用第三方包，可以直接用slog当你的 logger 
 
-slog 简单示例:
+##### slog 简单示例:
+
+默认 输出级别是info以上,所以debug是打印不出来.
 ```golang
-        slog.Info("finished", "key", "value")
-	slog.Debug("finished", "key1", "value1")
+import "log/slog"
+func main() {
+	slog.Info("finished", "key", "value")
+	slog.Debug("finished", "key", "value")
+}
 ```
-以下是打印日志 默认slog 输出级别是info以上,所以debug是打印不出来.
+输出
 ```
 2023/09/08 00:27:24 INFO finished key=value
 ```
-
-json格式化,设置日志等级,并打印调用函数和文件
+##### slog 格式化
+HandlerOptions Level:设置日志等级 AddSource:打印文件相关信息
 ```golang
-opts := &slog.HandlerOptions{AddSource: true, Level: slog.LevelInfo}
+func main() {
+	opts := &slog.HandlerOptions{AddSource: true, Level: slog.LevelInfo}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
 	logger.Info("finished", "key", "value")
+}
 ```
 输出
 ```
 {"time":"2023-09-08T00:34:22.035962+08:00","level":"INFO","source":{"function":"callvis/slog.TestLogJsonHandler","file":"/Users/websong/w/pro/go-note/slog/main_test.go","line":39},"msg":"finished","key":"value"}
 
 ```
-### 原有 logger zap实现
-原有的项目已经实现了一套logger,使用zap log 实现接口
+##### slog 切换日志等级
 
-#### 原有代码示例
+看 slog源码  HandlerOptions 的 Level 是一个  interface,slog 自带的 slog.LevelVar 实现了这个 interface,也可以自己定义实现 下面是部分源码
+``` golang
+type Leveler interface {
+	Level() Level
+}
+type LevelVar struct {
+	val atomic.Int64
+}
+// Level returns v's level.
+func (v *LevelVar) Level() Level {
+	return Level(int(v.val.Load()))
+}
+
+// Set sets v's level to l.
+func (v *LevelVar) Set(l Level) {
+	v.val.Store(int64(l))
+}
+```
+通过 slog.LevelVar 设置debug等级后,第二次的debug日志是可以打印出来
+
+```golang
+func main() {
+	levelVar := &slog.LevelVar{}
+	levelVar.Set(slog.LevelInfo)
+
+	opts := &slog.HandlerOptions{AddSource: true, Level: levelVar}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
+	logger.Info("finished", "key", "value")
+
+	levelVar.Set(slog.LevelDebug)
+	logger.Debug("finished", "key", "value")
+}
+```
+想要实现 文章开头 通过 logger.SetLevel(logger.DebugLevel) 快速切换等级,可以选择将slog.Logger 与 slog.LevelVar 封装到同一结构,比如
+
+``` golang
+type SlogLogger struct {
+	logger *slog.Logger
+	level  *slog.LevelVar
+}
+```
+下文 slog 替换 zap 有详细代码体现
+
+
+### 原有 logger zap实现
+原有项目已经实现了一套logger,使用zap log 以下代码都是在 logger 包下 [github.com/webws/go-moda/logger](github.com/webws/go-moda/logger)
+
+#### 原zap代码
 logger interface LoggerInterface
 ``` golang
 package logger
@@ -111,7 +164,7 @@ func buildZapLog(level Level) LoggerInterface {
     // ...省略info 之类其他实现接口的方法 
 }
 ```
-全局初始化logger,因代码量太大,以下是伪代码,主要提供思路,为下文 slog 无侵入替换zap 预热
+全局初始化logger,因代码量太大,以下是伪代码,主要提供思路
 ``` golang
 package logger
 
@@ -127,13 +180,13 @@ func Infow(msg string, keysAndValues ...interface{}) {
 }
 // ...省略其他全局方法,比如DebugW 之类
 ```
-在项目里就可以通过logger 使用日志
+在项目中通过 如下使用 logger 
 ``` golang
-    logger.Debugw("msg1", "k1", "v1") // debug
-	logger.SetLevel(DebugLevel)      //设置等级
-	logger.Debugw("msg3", "k3", "v3") 
-	newLogger := logger.With("name", "song")
-	logger.Infow("msg4", "k4", "v4")  // print
+import "github.com/webws/go-moda/logger"
+
+func main() {
+	logger.Infow("hello", "key", "value")   // 打印json
+}
 ```
 ### slog 不侵入业务 替换zap 
 logger interface  接口保持不变
@@ -227,24 +280,30 @@ func Infow(msg string, keysAndValues ...interface{}) {
 }
 // ...省略其他全局方法,比如DebugW 之类
 ```
+一样可以 通过 如下使用 logger,与使用zap时一样
+``` golang
+import "github.com/webws/go-moda/logger"
+
+func main() {
+	logger.Infow("hello", "key", "value")   // 打印json
+}
+```
 ### slog 实现 callerSkip 功能 
+
 
 slog  的 addsource 参数 会打印文件名和行号,但 并不能像 zap 那样支持 callerSkip,也就是说  如果将 slog 封装在 logger 目录的log.go 文件下,使用logger进行打印,展示的文件会一只是log.go 
 
-看了 slog 的源码,其实slog 使用了 runtime.Callers 在内部实现了 callerSkip 功能,但是没有对外暴露 callerSkip 参数
+看了 slog 的源码, 使用了 runtime.Callers 在内部实现了 callerSkip 功能,但是没有对外暴露 callerSkip 参数
 
-我就封装了 ApppendFileLine 方法,使用  runtime.Callers 获取到 文件名 和 行号,增加 file 和 line 的key value到日志
+可以看我上面代码 自己封装了一个方法: ApppendFileLine, 使用  runtime.Callers 获取到 文件名 和 行号,增加 file 和 line 的key value到日志
 
 可能会有性能问题,希望slog能对外提供一个 callerSkip 参数
 
-```golang
-    var pc uintptr
-	var pcs [1]uintptr
-	// skip [runtime.Callers, this function, this function's caller]
-	runtime.Callers(4, pcs[:])
-	pc = pcs[0]
-	fs := runtime.CallersFrames([]uintptr{pc})
-	f, _ := fs.Next()
-	keyValues = append(keyValues, "file", f.File, "line", f.Line)
-```
-g
+
+
+### 说明
+文章中贴的代码不多,主要提供思路,虽然省略了一些方法和 全局logger的实现方式
+
+如要查看logger实现细节,可查看 在文章开头 快速体验 引用的包 [github.com/webws/go-moda/logger](github.com/webws/go-moda/logger)
+
+也可以直接看下我这个 仓库 [go-moda](https://github.com/webws/go-moda) 里使用 slog 和 zap 的封装

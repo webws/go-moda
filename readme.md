@@ -4,7 +4,7 @@
 - transport: 集成 http（echo、gin）和 grpc。
 - 统一服务启动入口
 - config:    通用的配置文件读取模块，支持 toml、yaml 和 json 格式。
-- logger:    结构化 统一 logger API,zap log, 新增 slog 实现skipCaller 功能
+- logger:    结构化 统一 logger API, 已 新增 slog 替换zap [logger](./logger/)
 - pprof:	 分析性能
 - tracing:   openTelemetry 实现微务链路追踪
 - Metrics:   指标系统,集成 Prometheus (TODO)
