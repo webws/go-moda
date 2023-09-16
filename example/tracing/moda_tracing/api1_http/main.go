@@ -44,7 +44,6 @@ func main() {
 	defer shutdown(context.Background())
 	e, httpSrv := modahttp.NewEchoHttpServer(
 		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WithTracing(conf.Tracing),
 	)
 	registerHttp(e)
 	a := app.New(app.Server(httpSrv))

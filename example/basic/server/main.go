@@ -5,29 +5,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	app "github.com/webws/go-moda"
-	"github.com/webws/go-moda/config"
 	examplepb "github.com/webws/go-moda/example/pb/example"
+
 	"github.com/webws/go-moda/logger"
 	"google.golang.org/grpc"
 )
 
 var ServerName string
 
-type Config struct {
-	HttpAddr string `json:"http_addr" toml:"http_addr"`
-	GrpcAddr string `json:"grpc_addr" toml:"grpc_addr"`
-}
-
 func main() {
-	logger.SetLevel(logger.DebugLevel)
-	conf := &Config{}
-	if err := config.NewConfigWithFile("./conf.toml").Load(conf); err != nil {
-		logger.Fatalw("NewConfigWithFile fail", "err", err)
-	}
 	// http server default gin
-	a := app.NewServer().AddHttpServer(conf.HttpAddr, registerHttp)
+	a := app.NewServer().AddHttpServer(":8088", registerHttp)
 	// grpc
-	a.AddGrpcServer(conf.GrpcAddr, func(sr grpc.ServiceRegistrar) {
+	a.AddGrpcServer(":8087", func(sr grpc.ServiceRegistrar) {
 		examplepb.RegisterExampleServiceServer(sr, &examplepb.ExampleServer{})
 	})
 	if err := a.Run(); err != nil {
