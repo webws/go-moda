@@ -7,9 +7,15 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gin-gonic/gin"
 	"github.com/webws/go-moda/logger"
 	"github.com/webws/go-moda/transport"
+	modagrpc "github.com/webws/go-moda/transport/grpc"
+	"github.com/webws/go-moda/transport/http"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"golang.org/x/sync/errgroup"
+
+	"google.golang.org/grpc"
 )
 
 type (
@@ -18,9 +24,11 @@ type (
 		name    string
 		version string
 
-		ctx context.Context
-
-		servers []transport.Server
+		ctx        context.Context
+		tracing    bool
+		servers    []transport.Server
+		httpServer http.HTTPServer
+		grpcServer *modagrpc.Server
 	}
 )
 
@@ -30,6 +38,10 @@ func Name(name string) Option {
 
 func Version(version string) Option {
 	return func(o *options) { o.version = version }
+}
+
+func Tracing(Tracing bool) Option {
+	return func(o *options) { o.tracing = Tracing }
 }
 
 func Server(srv ...transport.Server) Option {
@@ -58,7 +70,62 @@ func New(opt ...Option) *App {
 	return app
 }
 
+func NewServer() *App {
+	options := options{
+		ctx: context.Background(),
+	}
+	ctx, cancel := context.WithCancel(options.ctx)
+	app := &App{
+		ctx:    ctx,
+		cancel: cancel,
+		opts:   options,
+	}
+	return app
+}
+
+func (a *App) SetTracing(tracing bool) *App {
+	a.opts.tracing = tracing
+	return a
+}
+
+func (a *App) AddHttpServer(address string, registerFunc func(g *gin.Engine)) *App {
+	gin, httpServer := http.NewGinHttpServer(http.WithAddress(address))
+	a.opts.servers = append(a.opts.servers, httpServer)
+	registerFunc(gin)
+	return a
+}
+
+func (a *App) AddGrpcServer(address string, registerFunc func(grpc.ServiceRegistrar)) *App {
+	grpcServer := modagrpc.NewServer(modagrpc.WithServerAddress(address), modagrpc.WithRegisterFunc(registerFunc))
+	a.opts.servers = append(a.opts.servers, grpcServer)
+	return a
+}
+
+func (a *App) init() *App {
+	if a == nil {
+		a = NewServer()
+	}
+	if a.opts.httpServer != nil {
+		if a.opts.tracing {
+			a.opts.httpServer.EnableTracing()
+		}
+	}
+	if a.opts.grpcServer != nil {
+		a.opts.grpcServer.Server = grpc.NewServer()
+		var grpcOption []grpc.ServerOption
+		if a.opts.tracing {
+			grpcOption = append(grpcOption, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
+			grpcOption = append(grpcOption, grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+			a.opts.grpcServer.Server = grpc.NewServer(grpcOption...)
+		}
+		a.opts.grpcServer.CallBackRegiser()
+
+	}
+	return a
+}
+
 func (a *App) Run() error {
+	a = a.init()
 	eg, ctx := errgroup.WithContext(a.ctx)
 	for _, srv := range a.opts.servers {
 		srv := srv

@@ -7,7 +7,6 @@ import (
 
 	"github.com/webws/go-moda/logger"
 	"github.com/webws/go-moda/transport"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -35,17 +34,24 @@ func WithTracing(tracing bool) ServerOptions {
 	}
 }
 
+func WithRegisterFunc(serviceRegistrar func(grpc.ServiceRegistrar)) ServerOptions {
+	return func(s *Server) {
+		s.serviceRegiserFunc = serviceRegistrar
+	}
+}
+
 // 验证 Server 是否实现了 transport.Server 接口
 var _ transport.Server = &Server{}
 
 type Server struct {
 	*grpc.Server
-	ctx      context.Context
-	listener net.Listener
-	once     sync.Once
-	network  string
-	address  string
-	tracing  bool
+	ctx                context.Context
+	listener           net.Listener
+	once               sync.Once
+	network            string
+	address            string
+	tracing            bool
+	serviceRegiserFunc func(grpc.ServiceRegistrar)
 }
 
 // NewServer
@@ -60,15 +66,20 @@ func NewServer(opts ...ServerOptions) *Server {
 		logger.Infow("[GRPC] server address is empty, use default address", "address", address)
 		srv.address = address
 	}
-	var grpcOption []grpc.ServerOption
+	// var grpcOption []grpc.ServerOption
 
 	srv.Server = grpc.NewServer()
-	if srv.tracing {
-		grpcOption = append(grpcOption, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
-		grpcOption = append(grpcOption, grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
-	}
-	srv.Server = grpc.NewServer(grpcOption...)
+	// registerFunc
+	// if srv.tracing {
+	// 	grpcOption = append(grpcOption, grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()))
+	// 	grpcOption = append(grpcOption, grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()))
+	// }
+	// srv.Server = grpc.NewServer(grpcOption...)
 	return srv
+}
+
+func (s *Server) CallBackRegiser() {
+	s.serviceRegiserFunc(s)
 }
 
 // start
