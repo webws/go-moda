@@ -39,7 +39,6 @@ func main() {
 	defer shutdown(context.Background())
 	gin, httpSrv := modahttp.NewGinHttpServer(
 		modahttp.WithAddress(conf.HttpAddr),
-		modahttp.WithTracing(conf.Tracing),
 	)
 	registerHttp(gin)
 	a := app.New(app.Server(httpSrv))
